@@ -31,6 +31,14 @@ export function NotesProvider({ children }) {
       }
     });
     if (error) throw error;
+
+    // add to profiles
+    const uid = data.session?.user?.id ?? data.user?.id;
+    if (uid) {
+        await supabase.from('profiles').upsert({
+            id: uid, first_name: firstName, last_name: lastName
+        });
+    }
     return data; // may contain null session if email confirmation required
   }
 
@@ -49,9 +57,18 @@ export function NotesProvider({ children }) {
   // create profile row once user is authenticated
   async function ensureProfile() {
     if (!session?.user?.id) return;
+
+    const {user} = session;
+    const first = user.user_metadata?.first_name ?? '';
+    const last = user.user_metadata?.last_name ?? '';
+
     await supabase
       .from('profiles')
-      .upsert({ id: session.user.id })
+      .upsert({ 
+        id: user.id,
+        first_name: first || undefined,
+        last_name: last || undefined,
+        }, { onConflict: 'id' })
       .select()
       .single()
       .catch(() => {});
@@ -120,11 +137,13 @@ export function NotesProvider({ children }) {
   }
 
   async function deleteNote(id) {
+    const confirmDel = confirm("Are you sure you want to delete this note?");
+    if (!confirmDel) return;
+
     const { error } = await supabase.from('notes').delete().eq('id', id);
     if (error) throw error;
-    const confirmDel = confirm("Are you sure you want to delete this note?");
-    if (confirmDel) 
-        setNotes(prev => prev.filter(n => n.id !== id));
+    
+    setNotes(prev => prev.filter(n => n.id !== id));
   }
 
   // initial load + refresh on login

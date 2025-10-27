@@ -91,13 +91,15 @@ button:hover {
     padding: 0;
 }
 
+.note-container:has(> :only-child) {
+    grid-template-columns: 1fr;
+}
+
 @media (max-width: 600px) {
     .note-container {
         grid-template-columns: 1fr;
     }
 }
-
-
 
 .addNote-container {
     display: flex;
