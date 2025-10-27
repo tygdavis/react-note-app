@@ -258,3 +258,33 @@ input:focus {
     from {transform: rotate(0deg);}
     to {transform: rotate(360deg);}
 }
+
+.password-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+}
+
+.password-container input {
+    padding-right: 2.5rem;
+    width: 100%;
+}
+
+.toggle-password {
+    position: absolute;
+    right: -0.5rem;
+    bottom: .5rem;
+    background-color: transparent;
+    border: none;
+}
+
+.toggle-password:hover {
+    outline: none;
+    box-shadow: none;
+}
+
+.toggle-password img {
+    width: 1.5rem;
+    height: 1.5rem;
+}

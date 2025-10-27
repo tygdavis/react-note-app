@@ -7,12 +7,16 @@ import SearchBar from './components/SearchBar';
 import Header from './components/Header';
 import './styles.css';
 
+import showEye from './assets/showEye.png';
+import hideEye from './assets/hideEye.png';
+
 function AuthScreen() {
   const { signIn, signUp } = useNotes();
 
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -48,14 +52,40 @@ function AuthScreen() {
       <h2>{mode === 'signin' ? 'Sign in' : 'Create an Account'}</h2>
 
       <input name="email" type="email" placeholder="Email" autoComplete="email" required />
-      <input name="password" type="password" placeholder="Password" autoComplete="new-password" required minLength={6} />
+      <div className="password-container">
+        <input name="password" type={showPassword? "text" : "password"} placeholder="Password" autoComplete="new-password" required minLength={6}/>
+        <button
+          type="button"
+          className="toggle-password"
+          onClick={()=>setShowPassword((prev)=>!prev)}
+        >
+          <img
+            src={showPassword ? hideEye : showEye}
+            alt={showPassword ? "Hide Password" : "Show password"}
+          />
+        </button>
+      </div>
+
+      
 
       {mode === 'signup' && (
         <>
           {/* make these required only if you want to force names at sign-up */}
+          <div className="password-container">
+            <input name="confirm" type={showPassword? "text" : "password"} placeholder="Confirm password" autoComplete="new-password" required />
+            <button
+              type="button"
+              className="toggle-password"
+              onClick={()=>setShowPassword((prev)=>!prev)}
+            >
+              <img
+                src={showPassword ? hideEye : showEye}
+                alt={showPassword ? "Hide Password" : "Show password"}
+              />
+            </button>
+          </div>
           <input name="firstname" placeholder="First Name" autoComplete="given-name" />
           <input name="lastname" placeholder="Last Name" autoComplete="family-name" />
-          <input name="confirm" type="password" placeholder="Confirm password" autoComplete="new-password" required />
         </>
       )}
 
