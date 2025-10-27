@@ -1,0 +1,190 @@
+body {
+    background-color: #E8F5E9; /* lighter green background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: #333;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+}
+
+.icon-btn img {
+    width: 2rem;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    width: 90vw;
+    max-width: 800px;
+    gap: 1rem;
+}
+
+.note-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #FFFFFF;
+    padding: 12px 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    cursor: pointer;
+}
+
+
+
+.note-text {
+    font-size: 1.1rem;
+}
+
+.primary {
+    background-color: #2E7D32;
+    color: #fff;
+}
+
+.secondary {
+    background-color: #FFFFFF;
+    border: 1px solid #81C784;
+    color: #2E7D32;
+}
+
+button {
+    border-radius: 8px;
+    font-size: 1rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+.icon-btn {
+    background-color: transparent;
+}
+
+.note-container {
+    list-style: none;
+    display: grid;
+    gap: 12px;
+    margin-top: 1rem;
+    padding: 0;
+}
+
+.addNote-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+textarea {
+    border-radius: 10px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    resize: vertical;
+    font-size: 1rem;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 5px rgba(46,125,50,0.4);
+}
+
+
+/* shows only 3 lines when collapsed */
+.note-item.collapsed .note-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* layout niceties */
+.note-item { gap: 12px; }
+.note-body { flex: 1; display: grid; gap: 8px; }
+.btn-row { display: flex; gap: 8px; justify-content: flex-end; }
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.icon-btn:hover { box-shadow: none; }
+.timestamps { color: #666; }
+
+.searchBar {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 5px 10px;
+    margin-bottom: 1rem;
+}
+
+.searchBar:focus {
+    outline: none;
+    border-color: #2E7D32;
+    box-shadow: 0 0 5px rgba(46,125,50,0.4);
+}
+
+/* overlay/backdrop */
+.note-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+}
+
+/* modal panel */
+.note-overlay-content {
+  background: #fff;
+  width: min(900px, 92vw);
+  max-height: 85vh;
+  overflow: auto;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  display: grid;
+  gap: 12px;
+}
+
+.overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.note-text.large {
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* optional: make list view show only a few lines */
+.note-item .note-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
