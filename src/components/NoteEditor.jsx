@@ -23,7 +23,7 @@ export default function NoteEditor() {
     }
 
     function handleKeyDown(e) {
-        if ((e.ctrlkey || e.metaKey) && e.key === "Enter") {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
             e.preventDefault();
             handleSubmit(e);
         }

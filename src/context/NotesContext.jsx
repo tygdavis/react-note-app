@@ -1,66 +1,224 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import supabase from '../lib/supabaseClient.js';
 
-
-// create context that can be passed down
-    // set later in return
 const NotesContext = createContext(null);
-    // storage key for all the notes
-const STORAGE_KEY = "notes_v1";
+
+// map database rows → UI format
+function mapRow(row) {
+  return {
+    id: row.id,
+    text: row.content ?? '',
+    createdAt: row.created_at ? Date.parse(row.created_at) : null,
+    updatedAt: row.updated_at ? Date.parse(row.updated_at) : null,
+  };
+}
+
 export function NotesProvider({ children }) {
-    const [notes, setNotes] = useState(()=>{
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : [];
-        } catch {
-            return [];
-        }
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // ---------- AUTH ----------
+  async function signUp(email, password, firstName='', lastName='') {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      // optional: uncomment if you use email confirmations
+      // options: { emailRedirectTo: window.location.origin },
+      options: {
+        data: { first_name: firstName, last_name: lastName }
+      }
     });
+    if (error) throw error;
+    return data; // may contain null session if email confirmation required
+  }
 
-    const [searchTerm, setSearchTerm] = useState("");
+  async function signIn(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  }
 
-    // persist to localStorage
-    useEffect(()=> {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-    }, [notes]);
+  async function signOut() {
+    await supabase.auth.signOut();
+    setSession(null);
+    setNotes([]);
+  }
 
-    function addNote(text) {
-        if (!text.trim()) return;
+  // create profile row once user is authenticated
+  async function ensureProfile() {
+    if (!session?.user?.id) return;
+    await supabase
+      .from('profiles')
+      .upsert({ id: session.user.id })
+      .select()
+      .single()
+      .catch(() => {});
+  }
 
-        const now = Date.now();
-        // add note object to note array
-        setNotes((prev) => [
-            { id: crypto.randomUUID?.() ?? String(now), text: text.trim(), createdAt: now, updatedAt: now },
-            ...prev,
-        ]);
-    }
+  // track Supabase auth session
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session ?? null);
+      setLoading(false);
+    })();
 
-    function updateNote(id, fields) {
-        setNotes((prev) => 
-            prev.map((n) => 
-                (n.id === id ? { ...n, ...fields, updatedAt: Date.now() }: n))
-        );
-    }
-
-    function deleteNote(id) {
-        const confirmDelete = confirm("Are you sure you want to delete this note?");
-        if (confirmDelete) {
-            setNotes((prev) => prev.filter((n) => n.id !== id));
-        }
-    }
-
-    const value = useMemo(
-        () => ({notes, addNote, updateNote, deleteNote, searchTerm, setSearchTerm}),
-        [notes, searchTerm]
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => setSession(newSession)
     );
 
-    return (
-        <NotesContext.Provider value={value}
-        >{children}</NotesContext.Provider>
-    )
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ensure a profile exists after login
+  useEffect(() => {
+    if (session?.user?.id) ensureProfile();
+  }, [session?.user?.id]);
+
+  // ---------- NOTES CRUD ----------
+  async function refreshNotes() {
+    if (!session?.user?.id) return;
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    setNotes((data ?? []).map(mapRow));
+  }
+
+  async function addNote(text) {
+    const trimmed = (text ?? '').trim();
+    if (!trimmed) return;
+
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({ content: trimmed }) // trigger fills user_id
+      .select()
+      .single();
+    if (error) throw error;
+
+    const mapped = mapRow(data);
+    setNotes(prev => [mapped, ...prev]);
+  }
+
+  async function updateNote(id, patch) {
+    const toUpdate = {};
+    if (typeof patch.text === 'string') toUpdate.content = patch.text;
+
+    const { data, error } = await supabase
+      .from('notes')
+      .update(toUpdate)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+
+    const mapped = mapRow(data);
+    setNotes(prev => prev.map(n => (n.id === id ? mapped : n)));
+  }
+
+  async function deleteNote(id) {
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (error) throw error;
+    const confirmDel = confirm("Are you sure you want to delete this note?");
+    if (confirmDel) 
+        setNotes(prev => prev.filter(n => n.id !== id));
+  }
+
+  // initial load + refresh on login
+  useEffect(() => {
+    if (session) refreshNotes();
+  }, [session]);
+
+  // realtime sync for current user's notes
+  useEffect(() => {
+    if (!session) return;
+
+    const channel = supabase
+      .channel('notes-feed')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notes' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setNotes(prev => [mapRow(payload.new), ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setNotes(prev =>
+              prev.map(n => (n.id === payload.new.id ? mapRow(payload.new) : n))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setNotes(prev => prev.filter(n => n.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [session]);
+
+  async function setDisplayName(firstName = '', lastName='') {
+    // update metadata
+    const {data, error} = await supabase.auth.updateUser({
+        data: {first_name: firstName, last_name: lastName}
+    });
+
+    if (error) throw error;
+
+    // mirror to profiles
+    const uid = data?.user?.id ?? session?.user?.id;
+
+    if (uid) {
+        await supabase.from('profiles').upsert({
+            id: uid,
+            first_name: firstName,
+            last_name: lastName
+        });
+    }
+
+    // refresh session in state
+    const {data: s } = await supabase.auth.getSession();
+    setSession(s.session ?? null);
+  }
+
+  const displayName = useMemo(()=>{
+    const meta = session?.user?.user_metadata || {};
+    const first = meta.first_name?.trim();
+    const last = meta.last_name?.trim();
+    return (first || last) ? `${first ?? ''} ${last ?? ''}`.trim() : (session?.user?.email ?? '');
+  }, [session]);
+
+  const value = useMemo(
+    () => ({
+      // auth
+      session,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      setDisplayName,
+      displayName,
+
+      // notes
+      notes,
+      refreshNotes,
+      addNote,
+      updateNote,
+      deleteNote,
+
+      // search
+      searchTerm,
+      setSearchTerm,
+    }),
+    [session, loading, notes, searchTerm, displayName]
+  );
+
+  return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;
 }
 
 export function useNotes() {
-    const ctx = useContext(NotesContext);
-    if (!ctx) throw new Error("useNotes must be used within a NotesProvider");
-    return ctx;
+  const ctx = useContext(NotesContext);
+  if (!ctx) throw new Error('useNotes must be used inside <NotesProvider>');
+  return ctx;
 }
