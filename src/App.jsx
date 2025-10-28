@@ -8,8 +8,7 @@ import Header from './components/Header';
 import PasswordField from './components/PasswordField';
 import './styles.css';
 
-import showEye from './assets/showEye.png';
-import hideEye from './assets/hideEye.png';
+import { Analytics } from '@vercel/analytics/react';
 
 function AuthScreen() {
   const { signIn, signUp } = useNotes();
@@ -123,6 +122,7 @@ export default function App() {
     <NotesProvider>
       {session && <Header/>}
       <AppInner />
+      <Analytics/>
     </NotesProvider>
   );
 }
