@@ -83,11 +83,10 @@ export default function App() {
 ---
 
 ## Example Screenshot
-![React Note App Screenshot](
 <p align="center">
   <img src="./public/screenshot.png" width="800" alt="App screenshot">
 </p>
-)
+
 
 ---
 
