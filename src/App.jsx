@@ -5,6 +5,7 @@ import NoteList from './components/NoteList';
 import NoteEditor from './components/NoteEditor';
 import SearchBar from './components/SearchBar';
 import Header from './components/Header';
+import PasswordField from './components/PasswordField';
 import './styles.css';
 
 import showEye from './assets/showEye.png';
@@ -53,17 +54,7 @@ function AuthScreen() {
 
       <input name="email" type="email" placeholder="Email" autoComplete="email" required />
       <div className="password-container">
-        <input name="password" type={showPassword? "text" : "password"} placeholder="Password" autoComplete="new-password" required minLength={6}/>
-        <button
-          type="button"
-          className="toggle-password"
-          onClick={()=>setShowPassword((prev)=>!prev)}
-        >
-          <img
-            src={showPassword ? hideEye : showEye}
-            alt={showPassword ? "Hide Password" : "Show password"}
-          />
-        </button>
+        <PasswordField isToggleable={true}/>
       </div>
 
       
@@ -72,17 +63,8 @@ function AuthScreen() {
         <>
           {/* make these required only if you want to force names at sign-up */}
           <div className="password-container">
-            <input name="confirm" type={showPassword? "text" : "password"} placeholder="Confirm password" autoComplete="new-password" required />
-            <button
-              type="button"
-              className="toggle-password"
-              onClick={()=>setShowPassword((prev)=>!prev)}
-            >
-              <img
-                src={showPassword ? hideEye : showEye}
-                alt={showPassword ? "Hide Password" : "Show password"}
-              />
-            </button>
+            <PasswordField isConfirm={true} isToggleable={true}/>
+
           </div>
           <input name="firstname" placeholder="First Name" autoComplete="given-name" />
           <input name="lastname" placeholder="Last Name" autoComplete="family-name" />
@@ -118,8 +100,11 @@ function AppInner() {
     <>
     <main>
       <div className="container">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
-          <p style={{ margin: 0 }}><strong>{displayName}{displayName[displayName.length-1].toLowerCase() === 's' ? "'" : "'s"}</strong>&nbsp;Notes</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', fontSize:'1.5rem' }}>
+          <p style={{ margin: 0 }}>
+            <strong>{displayName}
+              {displayName[displayName.length-1].toLowerCase() === 's' ? "'" : "'s"}
+            </strong>&nbsp;Notes</p>
           <button className="primary" onClick={signOut}>Sign out</button>
         </div>
 
