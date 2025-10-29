@@ -62,7 +62,7 @@ function AuthScreen() {
         <>
           {/* make these required only if you want to force names at sign-up */}
           <div className="password-container">
-            <PasswordField isConfirm={true} isToggleable={true}/>
+            <PasswordField isConfirm={true} isToggleable={false}/>
 
           </div>
           <input name="firstname" placeholder="First Name" autoComplete="given-name" />
