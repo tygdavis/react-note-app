@@ -1,19 +1,46 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNotes } from '../context/NotesContext';
+import { useState, useRef, useEffect } from "react";
+import { useNotes } from "../context/NotesContext";
 import close from "../assets/close.png";
+
+// dnd-kit
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 function formatTime(ts) {
   const d = new Date(ts);
   return d.toLocaleString();
 }
 
-function NoteItem({ note }) {
+function NoteItem({ note, draggable = false, isDragging = false }) {
   const { updateNote, deleteNote } = useNotes();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(note.text);
   const editRef = useRef(null);
-
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+
+  // Hook up dnd-kit sortable
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging: dndDragging,
+    isSorting,
+  } = useSortable({
+    id: note.id,
+    disabled: !draggable,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    // Help touch-drag feel responsive & avoid browser scrolling during drag
+    touchAction: draggable ? "none" : undefined,
+    // Visual feedback
+    opacity: dndDragging ? 0.6 : undefined,
+    cursor: draggable ? (dndDragging ? "grabbing" : "grab") : "default",
+  };
 
   // focus textarea when entering edit mode
   useEffect(() => {
@@ -29,14 +56,14 @@ function NoteItem({ note }) {
   useEffect(() => {
     if (!isOverlayOpen) return;
     const onKey = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         setIsOverlayOpen(false);
         setIsEditing(false);
         setDraft(note.text);
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [isOverlayOpen, note.text]);
 
   function save() {
@@ -48,6 +75,8 @@ function NoteItem({ note }) {
   }
 
   function openOverlay() {
+    // prevent accidental open when the drop triggers a click
+    if (dndDragging || isSorting) return;
     setIsOverlayOpen(true);
   }
 
@@ -56,35 +85,40 @@ function NoteItem({ note }) {
     setIsEditing(false);
 
     if (draft !== note.text) {
-        const wantToReset = confirm("Do you want to save?");
-        if (wantToReset) {
-            save();
-        } else {
-            setDraft(note.text);
-        }
+      const wantToSave = confirm("Do you want to save?");
+      if (wantToSave) {
+        save();
+      } else {
+        setDraft(note.text);
+      }
     }
   }
 
   return (
     <>
-      {/* LIST ITEM (click anywhere to open overlay) */}
+      {/* LIST ITEM (acts as drag handle on mobile/desktop) */}
       <li
-        className="note-item"
-        onClick={openOverlay}
+        ref={setNodeRef}
+        className={`note-item${(isDragging || dndDragging) ? " dragging" : ""}`}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') openOverlay();
-        }}
         aria-label="Open note"
+        onClick={openOverlay}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") openOverlay();
+        }}
+        style={style}
+        {...attributes}
+        {...listeners}
       >
         <div className="note-body">
-          <div className="note-text" style={{ whiteSpace: 'pre-wrap' }}>
+          <div className="note-text" style={{ whiteSpace: "pre-wrap" }}>
             {note.text}
           </div>
           <small className="timestamps">
             Created: {formatTime(note.createdAt)} • Updated: {formatTime(note.updatedAt)}
           </small>
+
           <div className="btn-row">
             <button
               className="secondary item-button"
@@ -133,7 +167,7 @@ function NoteItem({ note }) {
                 onClick={closeOverlay}
                 aria-label="Close"
               >
-                <img  src={close}></img>
+                <img src={close} alt="close" />
               </button>
             </div>
 
@@ -145,8 +179,8 @@ function NoteItem({ note }) {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save();
-                    if (e.key === 'Escape') closeOverlay();
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) save();
+                    if (e.key === "Escape") closeOverlay();
                   }}
                 />
                 <div className="btn-row">
@@ -160,7 +194,7 @@ function NoteItem({ note }) {
               </>
             ) : (
               <>
-                <div className="note-text large" style={{ whiteSpace: 'pre-wrap' }}>
+                <div className="note-text large" style={{ whiteSpace: "pre-wrap" }}>
                   {note.text}
                 </div>
                 <div className="btn-row">
